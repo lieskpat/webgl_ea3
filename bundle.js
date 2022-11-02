@@ -85,6 +85,17 @@
         return new Float32Array(lineVertices);
     }
 
+    function initBuffer(gl, vertices) {
+        const n = vertices.length / 2;
+        //create a buffer object
+        const vertexBuffer = gl.createBuffer();
+        //bind the buffer object to target (for example ARRAY_BUFFER)
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        //write data into the buffer object
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        return n;
+    }
+
     function initWebGl(gl) {
         const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexGlsl);
         const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentGlsl);
@@ -93,13 +104,11 @@
         const positionAttributeLocation = gl.getAttribLocation(prog, "pos");
         //get the storage location of a uniform for example a transition
         const translationAttrib = gl.getUniformLocation(prog, "translation");
-        //create a buffer onject
-        const positionBuffer = gl.createBuffer();
-        //bind the buffer object to target for example ARRAY_BUFFER
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        //write data into the buffer object
-        gl.bufferData(gl.ARRAY_BUFFER, loadVertexData(), gl.STATIC_DRAW);
-        //return javascript object with all relevant data/objects
+        const countVertices = initBuffer(gl, loadVertexData());
+        //assign the buffer object to a position variable (pos in vertex shader)
+        gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+        //enable the assignment to a position variable (pos in vertex shader)
+        gl.enableVertexAttribArray(positionAttributeLocation);
         return {
             shader: {
                 vertex_shader: vertexShader,
@@ -110,33 +119,25 @@
                 position: positionAttributeLocation,
                 translation: translationAttrib,
             },
-            bindingBuffer: positionBuffer,
+            countVertices: countVertices,
         };
     }
 
     const gl = initContext("gl_context");
     const initObject = initWebGl(gl);
-    function initBuffer(gl) {
-        gl.useProgram(initObject.program);
-        //assign the buffer object to a position variable (pos in vertex shader)
-        gl.vertexAttribPointer(
-            initObject.attribLocation.positionAttributeLocation,
-            2,
-            gl.FLOAT,
-            false,
-            0,
-            0
-        );
-        //enable the assignment to a position variable (pos in vertex shader)
-        gl.enableVertexAttribArray(
-            initObject.attribLocation.positionAttributeLocation
-        );
+    gl.useProgram(initObject.program);
+
+    function draw(type, countVertices) {
+        gl.drawArrays(type, 0, countVertices);
     }
+
     function render(gl) {
-        initBuffer(gl);
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.drawArrays(gl.LINES, 0, 132);
+        draw(gl.LINES, initObject.countVertices);
+        draw(gl.LINE_LOOP, initObject.countVertices);
+        //draw(gl.LINE_STRIP, initObject.countVertices);
+        // gl.drawArrays(gl.LINES, 0, 132);
     }
 
     render(gl);
