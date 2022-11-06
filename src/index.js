@@ -1,23 +1,26 @@
 "use strict";
 
 import { initContext } from "./modules/initContext.js";
-import { initWebGl } from "./modules/initWebGl.js";
+import { initWebGl, initBuffer } from "./modules/initWebGl.js";
+
+const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0]);
+const colors = new Float32Array([
+    1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1,
+]);
+const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
 
 const gl = initContext("gl_context");
 const initObject = initWebGl(gl);
 gl.useProgram(initObject.program);
 
-function draw(type, countVertices) {
-    gl.drawArrays(type, 0, countVertices);
-}
+initBuffer(gl, vertices, gl.ARRAY_BUFFER, initObject.program, "pos", 3);
+initBuffer(gl, colors, gl.ARRAY_BUFFER, initObject.program, "col", 4);
 
-function render(gl) {
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    draw(gl.LINES, initObject.countVertices);
-    draw(gl.LINE_LOOP, initObject.countVertices);
-    //draw(gl.LINE_STRIP, initObject.countVertices);
-    // gl.drawArrays(gl.LINES, 0, 132);
-}
+const ibo = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+ibo.numberOfElements = indices.length;
 
-render(gl);
+gl.clearColor(0, 0, 0, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.drawElements(gl.TRIANGLES, ibo.numberOfElements, gl.UNSIGNED_SHORT, 0);
