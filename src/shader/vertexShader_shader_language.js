@@ -8,6 +8,6 @@ export default `
         //gl_position ist vierdimensionaler Vektor in homogenen Koordinaten
         //der form vec4(x, y, z, w)
         color = col;
-        gl_Position = vec4(pos-0.5, 1);
+        gl_Position = vec4(pos, 1);
     }
 `;
