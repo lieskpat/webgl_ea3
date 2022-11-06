@@ -27,21 +27,26 @@
 
     var vertexGlsl = `
     //zweidimensionaler Vektor
-    attribute vec2 pos;
+    attribute vec3 pos;
+    attribute vec4 col;
+    varying vec4 color;
     void main() {
         //berechnet neue Position der Übergebenen Vertices
         //gl_position ist vierdimensionaler Vektor in homogenen Koordinaten
         //der form vec4(x, y, z, w)
-        gl_Position = vec4(pos, 0, 1);
+        color = col;
+        gl_Position = vec4(pos-0.5, 1);
     }
 `;
 
     //Fragment Shader dienen unter anderem der Einfärbung
     var fragmentGlsl = `
+    precision mediump float;
+    varying vec4 color;
     void main(){
         //vierdimensionaler Vektor vec4(1, 1, 1, 1, 1)
         //RGB + Alpha Kanal
-        gl_FragColor = vec4(1, 0, 0, 1);
+        gl_FragColor = color;
     }
 `;
 
@@ -58,88 +63,71 @@
         return prog;
     }
 
-    //line start and end point
-    const lineVertices = [
-        -1, 1, 1, -1, -1, 0.9, 0.9, -1, -1, 0.8, 0.8, -1, -1, 0.7, 0.7, -1, 0, 0, 1,
-        1, 0, 0, 0, 1, 0, 0.1, 0.9, 1, 0, 0.2, 0.8, 1, 0, 0.3, 0.7, 1, 0.1, 0.4,
-        0.1, 1, 0.2, 0.5, 0.2, 1, 0.3, 0.6, 0.3, 1, 0.4, 0.7, 0.4, 1, 0.5, 0.8, 0.5,
-        1, 0.6, 0.9, 0.6, 1, 0, 0, 1, 0, -0.3, 0, -1, 0, -0.4, 0.1, -1, 0.1, -0.5,
-        0.2, -1, 0.2, -0.6, 0.3, -1, 0.3, -0.7, 0.4, -1, 0.4, -0.8, 0.5, -1, 0.5,
-        -0.9, 0.6, -1, 0.6, -0.3, 0, -1, -1, -0.4, 0, -1, -1, -0.5, 0, -1, -1, -0.6,
-        0, -1, -1, -0.7, 0, -1, -1, -0.8, 0, -1, -1, -0.9, 0, -1, -1, 0.4, -0.7,
-        -0.79, -0.7, -0.3, 0, -0.3, -0.7, -0.3, 0, -0.2, -0.7, -0.3, 0, -0.1, -0.7,
-        -0.3, 0, 0, -0.7, -0.3, 0, 0.1, -0.7, -0.3, 0, 0.2, -0.7, -0.3, 0, 0.3,
-        -0.7, -0.3, 0, -0.4, -0.7, -0.3, 0, -0.5, -0.7, -0.3, 0, -0.6, -0.7, -0.3,
-        0, -0.7, -0.7, 0.4, -0.7, 0.4, -1, 0.3, -0.7, 0.3, -1, 0.2, -0.7, 0.2, -1,
-        0.1, -0.7, 0.1, -1, 0, -0.7, 0, -1, -0.1, -0.7, -0.1, -1, -0.2, -0.7, -0.2,
-        -1, -0.3, -0.7, -0.3, -1, -0.4, -0.7, -0.4, -1, -0.5, -0.7, -0.5, -1, -0.6,
-        -0.7, -0.6, -1, -0.7, -0.7, -0.7, -1, -0.79, -0.7, -0.79, -1, 0.1, -0.1, 1,
-        -0.1, 0.2, -0.2, 1, -0.2, 0.3, -0.3, 1, -0.3, 0.4, -0.4, 1, -0.4, 0.5, -0.5,
-        1, -0.5, 0.6, -0.6, 1, -0.6, 0.7, -0.7, 1, -0.7, 0.8, -0.8, 1, -0.8, 0.9,
-        -0.9, 1, -0.9,
-
-        0.5, -0.8, 0.5, -1, 0.6, -0.9, 0.6, -1,
-    ];
-
-    function loadVertexData() {
-        return new Float32Array(lineVertices);
-    }
-
-    function initBuffer(gl, vertices) {
-        const n = vertices.length / 2;
+    function initBuffer(
+        gl,
+        arrayOfBufferData,
+        bufferType,
+        prog,
+        objectOfShaderVars,
+        numberOfComponents
+    ) {
+        //const n = vertices.length / 2;
         //create a buffer object
-        const vertexBuffer = gl.createBuffer();
+        const buffer = gl.createBuffer();
         //bind the buffer object to target (for example ARRAY_BUFFER)
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.bindBuffer(bufferType, buffer);
         //write data into the buffer object
-        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-        return n;
+        gl.bufferData(bufferType, arrayOfBufferData, gl.STATIC_DRAW);
+        const positionAttributeLocation = gl.getAttribLocation(
+            prog,
+            objectOfShaderVars
+        );
+        gl.getUniformLocation(prog, objectOfShaderVars);
+        gl.vertexAttribPointer(
+            positionAttributeLocation,
+            numberOfComponents,
+            gl.FLOAT,
+            false,
+            0,
+            0
+        );
+        gl.enableVertexAttribArray(positionAttributeLocation);
+        //return n;
     }
 
     function initWebGl(gl) {
         const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexGlsl);
         const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentGlsl);
         const prog = createProgram(gl, vertexShader, fragmentShader);
-        //get the storage location of a position (pos)
-        const positionAttributeLocation = gl.getAttribLocation(prog, "pos");
-        //get the storage location of a uniform for example a transition
-        const translationAttrib = gl.getUniformLocation(prog, "translation");
-        const countVertices = initBuffer(gl, loadVertexData());
-        //assign the buffer object to a position variable (pos in vertex shader)
-        gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
-        //enable the assignment to a position variable (pos in vertex shader)
-        gl.enableVertexAttribArray(positionAttributeLocation);
         return {
             shader: {
                 vertex_shader: vertexShader,
                 fragment_shader: fragmentShader,
             },
             program: prog,
-            attribLocation: {
-                position: positionAttributeLocation,
-                translation: translationAttrib,
-            },
-            countVertices: countVertices,
         };
     }
+
+    const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0]);
+    const colors = new Float32Array([
+        1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1,
+    ]);
+    const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
 
     const gl = initContext("gl_context");
     const initObject = initWebGl(gl);
     gl.useProgram(initObject.program);
 
-    function draw(type, countVertices) {
-        gl.drawArrays(type, 0, countVertices);
-    }
+    initBuffer(gl, vertices, gl.ARRAY_BUFFER, initObject.program, "pos", 3);
+    initBuffer(gl, colors, gl.ARRAY_BUFFER, initObject.program, "col", 4);
 
-    function render(gl) {
-        gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        draw(gl.LINES, initObject.countVertices);
-        draw(gl.LINE_LOOP, initObject.countVertices);
-        //draw(gl.LINE_STRIP, initObject.countVertices);
-        // gl.drawArrays(gl.LINES, 0, 132);
-    }
+    const ibo = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    ibo.numberOfElements = indices.length;
 
-    render(gl);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawElements(gl.TRIANGLES, ibo.numberOfElements, gl.UNSIGNED_SHORT, 0);
 
 })();
